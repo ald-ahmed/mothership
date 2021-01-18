@@ -49,3 +49,15 @@ body {
   padding: 10px 15px;
   border-radius: 5px;
 }
+
+/*.Toastify__toast--warning{*/
+/*  color: #1a1a1a!important;*/
+/*}*/
+
+.Toastify__toast--dark{
+  background: #f1c40f00!important;
+}
+
+.Toastify__close-button{
+  display: none!important;
+}

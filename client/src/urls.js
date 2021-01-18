@@ -2,8 +2,8 @@ let Urls = {};
 
 if (process.env.NODE_ENV === "production") {
     Urls = {
-        baseURL: "/api",
-        socketURL: "/api",
+        baseURL: "http://localhost:3001/configs",
+        socketURL: "http://localhost:1818/api/socket",
     };
 } else {
     Urls = {

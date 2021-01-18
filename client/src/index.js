@@ -1,7 +1,7 @@
 import ReactDOM from "react-dom"
 import * as CANNON from "cannon";
-import React, {Component, useRef, useState} from "react"
-import {Canvas, extend, useFrame, useThree} from "react-three-fiber"
+import React, {Component, useRef, useState, useEffect} from "react"
+import {Canvas, extend, useFrame, useThree, useLoader} from "react-three-fiber"
 import {useDrag} from "react-use-gesture";
 import * as THREE from 'three';
 import {Provider, useCannon} from './useCannon';
@@ -96,6 +96,7 @@ function DraggableDodecahedron({ identity: identity, logPositionChange: logPosit
               onPointerOut={(e) => setHover(false)}
               ref={ref}
               castShadow={true}
+              color={hovered ? 'blue' : identity.color}
               receiveShadow={false}
               position={[position.x, position.y, position.z]}
               quaternion={quaternion} {...bind()}  onClick={e => {e.stopPropagation();}}>
@@ -143,7 +144,7 @@ const keyPressed = {
 };
 
 
-const ConfigForm = ({ humanName, changeHumanName, name, color, changeColor, rating, changeRating}) => {
+const ConfigForm = ({ humanName, changeHumanName, name, color, changeColor, rating, changeRating, deleteObject}) => {
 
     const onSubmit = data => console.log(data);
 
@@ -165,6 +166,12 @@ const ConfigForm = ({ humanName, changeHumanName, name, color, changeColor, rati
             <br/>
 
             <input type="range" placeholder="Rating" name="Rating"  value={rating || ''} onChange={e => changeRating(e.target.value)} />
+
+            <br/>
+
+            <button  type="button" onClick={deleteObject}>
+                Delete
+            </button>
 
             {/*<input type="submit" />*/}
         </form>
@@ -198,15 +205,15 @@ function Index(props) {
     };
 
 
-    const handleKeyDown = (e) => {
-        if (!keyPressed[e.key]) {
-            keyPressed[e.key] = new Date().getTime();
-        }
-    };
-
-    const handleKeyUp = (e) => {
-        delete keyPressed[e.key];
-    };
+    // const handleKeyDown = (e) => {
+    //     if (!keyPressed[e.key]) {
+    //         keyPressed[e.key] = new Date().getTime();
+    //     }
+    // };
+    //
+    // const handleKeyUp = (e) => {
+    //     delete keyPressed[e.key];
+    // };
 
     const mouseWheel = (e) => {
         let delta = e.wheelDelta;
@@ -222,34 +229,38 @@ function Index(props) {
         }
     };
 
-    useEventListener('keydown', handleKeyDown);
-    useEventListener('keyup', handleKeyUp);
+    // useEventListener('keydown', handleKeyDown);
+    // useEventListener('keyup', handleKeyUp);
+
     useEventListener('wheel', mouseWheel);
 
-    useFrame((_, delta) => {
-        // move camera according to key pressed
-        Object.entries(keyPressed).forEach((e) => {
-            const [key, start] = e;
-            const duration = new Date().getTime() - start;
 
-            // increase momentum if key pressed longer
-            let momentum = Math.sqrt(duration + 200) * 0.01 + 0.05;
+    // useFrame((_, delta) => {
+    //     // move camera according to key pressed
+    //     Object.entries(keyPressed).forEach((e) => {
+    //         const [key, start] = e;
+    //         const duration = new Date().getTime() - start;
+    //
+    //         // increase momentum if key pressed longer
+    //         let momentum = Math.sqrt(duration + 200) * 0.01 + 0.05;
+    //
+    //         // adjust for actual time passed
+    //         momentum = momentum * delta / 0.016;
+    //
+    //         // increase momentum if camera higher
+    //         momentum = momentum + camera.position.z * 0.02;
+    //
+    //         switch (key) {
+    //             case 'w': camera.translateY(momentum); break;
+    //             case 's': camera.translateY(-momentum); break;
+    //             case 'd': camera.translateX(momentum); break;
+    //             case 'a': camera.translateX(-momentum); break;
+    //             default:
+    //         }
+    //     });
+    // });
 
-            // adjust for actual time passed
-            momentum = momentum * delta / 0.016;
 
-            // increase momentum if camera higher
-            momentum = momentum + camera.position.z * 0.02;
-
-            switch (key) {
-                case 'w': camera.translateY(momentum); break;
-                case 's': camera.translateY(-momentum); break;
-                case 'd': camera.translateX(momentum); break;
-                case 'a': camera.translateX(-momentum); break;
-                default:
-            }
-        });
-    });
 
     const CameraControls = () => {
         // Get a reference to the Three.js Camera, and the canvas html element.
@@ -331,6 +342,7 @@ class App extends Component {
 
     async fetchObjects() {
 
+
         console.log("Fetching objects")
 
         try {
@@ -339,7 +351,7 @@ class App extends Component {
             );
 
             if (response.status === 200) {
-                console.log(response.data);
+                // console.log(response.data);
 
                 var objects = response.data.map((t) => (
                     unboxAPIConfigObject(t)
@@ -349,13 +361,13 @@ class App extends Component {
                     return el != null;
                 });
 
-                console.log("Fetched objects", objects)
+                // console.log("Fetched objects", objects)
 
                 this.setState(({
                     objects: objects,
                 }));
 
-                toast.dark('Loaded All Objects');
+                // toast.dark('Loaded All Objects');
 
             } else {
                 alert(response.data.message);
@@ -404,7 +416,37 @@ class App extends Component {
 
         socket.on("deletedRobot", (realtimeUpdate) => {
 
-            toast.warn('Deleted Object ID '+realtimeUpdate.id);
+
+            let objects = [...this.state.objects];
+            let index = 0;
+
+            let _ = objects.find((o, i) => {
+                if (o.id === realtimeUpdate.id) {
+
+                    index = i;
+                    return true; // stop searching
+                }
+            });
+
+            const item = objects.splice(index, 1)[0]
+
+            this.setState({ objects: objects }, function() {
+
+                if (item.id === this.state.chosen) {
+
+                    this.setState({
+                        chosen: "",
+                        humanName: "",
+                        color: "",
+                        rating: 0
+                    });
+
+                }
+
+                toast.warn('Deleted '+item.humanName);
+
+            });
+
 
         });
 
@@ -438,19 +480,16 @@ class App extends Component {
                         color: item.color,
                         rating: item.rating
                     }, function (){
-                        toast.warn('Modified '+item.humanName);
+                        toast.dark('Modified '+item.humanName);
                     });
 
                 }
 
                 else {
-
                     this.setState({objects: [...objects, item]}, function (){
-                        toast.warn('Modified '+item.humanName);
+                        toast.dark('Modified '+item.humanName);
                     });
-
                 }
-
 
             });
 
@@ -529,12 +568,12 @@ class App extends Component {
     }
 
 
-    async deleteObject(key) {
+    async deleteObject() {
 
         try {
 
             const response = await axios.delete(
-                `${URLs.baseURL}\\${key}`
+                `${URLs.baseURL}\\${this.state.chosen}`
             );
 
             if (response.data.success) {
@@ -618,10 +657,20 @@ class App extends Component {
                             changeColor={this.changeColor.bind(this)}
                             rating={this.state.rating}
                             changeRating={this.changeRating.bind(this)}
+                            deleteObject={this.deleteObject.bind(this)}
                 />
 
-                <ToastContainer />
-
+                <ToastContainer
+                    position="top-right"
+                    autoClose={2000}
+                    hideProgressBar={false}
+                    newestOnTop={false}
+                    closeOnClick
+                    rtl={false}
+                    pauseOnFocusLoss={false}
+                    draggable
+                    pauseOnHover
+                />
 
             </>
         );
