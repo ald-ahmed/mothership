@@ -112,3 +112,7 @@ volumes/
 node_modules/
 volumes/mongodb/mongo/**/*
 /volumes/
+.idea/workspace.xml
+*.wt
+*.0000000001
+volumes/mongodb/mongo/data1/db/journal/WiredTigerLog.0000000001
