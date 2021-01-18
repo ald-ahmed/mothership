@@ -117,3 +117,4 @@ volumes/mongodb/mongo/**/*
 *.0000000001
 volumes/mongodb/mongo/data1/db/journal/WiredTigerLog.0000000001
 volumes/mongodb/mongo/data2/db/diagnostic.data/metrics.interim
+volumes/mongodb/mongo/data2/db/journal/WiredTigerLog.0000000001
