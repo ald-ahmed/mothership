@@ -1,6 +1,15 @@
 version: "3.6"
 services:
 
+  web:
+    build: .
+    depends_on:
+      - mongo-setup
+    expose:
+      - 3001
+    ports:
+      - 3001:3001
+
   mongo-setup:
     container_name: mongo-setup
     image: mongo
