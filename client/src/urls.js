@@ -1,15 +1,16 @@
-let Urls = {};
 
+
+let urls = {
+    baseURL: "/configs",
+    socketURL: "/api/socket",
+};
+
+// in case urls need to be changed for different environments
 if (process.env.NODE_ENV === "production") {
-    Urls = {
-        baseURL: "http://localhost:8080/configs",
-        socketURL: "http://localhost:1818/api/socket",
-    };
-} else {
-    Urls = {
+    urls = {
         baseURL: "/configs",
-        socketURL: "http://10.0.0.122:1818/api/socket",
+        socketURL: "/api/socket",
     };
 }
 
-export default Urls;
+export default urls;

@@ -1,29 +1,29 @@
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
+import { Canvas, extend, useFrame, useThree } from "react-three-fiber";
+import React, { Component, useRef, useState } from "react";
+import { toast, ToastContainer } from "react-toastify";
+import useEventListener from "@use-it/event-listener";
+import { Provider, useCannon } from "./useCannon";
+import LoadingScreen from "react-loading-screen";
+import { isBrowser } from "react-device-detect";
+import "react-toastify/dist/ReactToastify.css";
+import { useDrag } from "react-use-gesture";
+import { Html } from "@react-three/drei";
+import io from "socket.io-client";
+import Switch from "react-switch";
 import ReactDOM from "react-dom";
 import * as CANNON from "cannon";
-import React, { Component, useRef, useState } from "react";
-import { Canvas, extend, useFrame, useThree } from "react-three-fiber";
-import { useDrag } from "react-use-gesture";
 import * as THREE from "three";
-import { Provider, useCannon } from "./useCannon";
-import useEventListener from "@use-it/event-listener";
-import { Html } from "@react-three/drei";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import "./index.css";
-import URLs from "./urls.js";
-import io from "socket.io-client";
+import urls from "./urls.js";
 import axios from "axios";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { isBrowser } from "react-device-detect";
-import Switch from "react-switch";
-import LoadingScreen from "react-loading-screen";
-import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
+import "./index.css";
 
 let humanNames = require("human-names");
 extend({ OrbitControls });
 
 //socket.io connection
-const socket = io(`${URLs.socketURL}`);
+const socket = io(`${urls.socketURL}`);
 
 let initX;
 let initY;
@@ -335,7 +335,7 @@ class App extends Component {
         console.log("Fetching objects");
 
         try {
-            const response = await axios.get(`${URLs.baseURL}`);
+            const response = await axios.get(`${urls.baseURL}`);
 
             if (response.status === 200) {
                 // console.log(response.data);
@@ -472,7 +472,7 @@ class App extends Component {
             return;
         }
         try {
-            const response = await axios.put(`${URLs.baseURL}\\${key}`, {
+            const response = await axios.put(`${urls.baseURL}\\${key}`, {
                 position: position,
             });
         } catch (error) {
@@ -486,7 +486,7 @@ class App extends Component {
         }
 
         try {
-            await axios.post(`${URLs.baseURL}`, {
+            await axios.post(`${urls.baseURL}`, {
                 humanName: newObj.humanName,
                 color: newObj.color,
                 position: newObj.position,
@@ -522,7 +522,7 @@ class App extends Component {
 
         try {
             const response = await axios.delete(
-                `${URLs.baseURL}\\${this.state.chosen}`
+                `${urls.baseURL}\\${this.state.chosen}`
             );
         } catch (error) {
             console.log("Error with deleting object: ", error);
@@ -535,7 +535,7 @@ class App extends Component {
         }
 
         try {
-            const response = await axios.put(`${URLs.baseURL}\\${prop.key}`, {
+            const response = await axios.put(`${urls.baseURL}\\${prop.key}`, {
                 humanName: prop.humanName,
                 color: prop.color,
                 rating: prop.rating,

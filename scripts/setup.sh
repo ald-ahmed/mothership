@@ -12,7 +12,7 @@ echo "**********************************************" ${MONGODB1}
 echo "Waiting for startup.."
 until curl http://${MONGODB1}:27017/serverStatus\?text\=1 2>&1 | grep uptime | head -1; do
   printf '.'
-  sleep 1
+  sleep 2
 done
 
 # echo curl http://${MONGODB1}:28017/serverStatus\?text\=1 2>&1 | grep uptime | head -1
