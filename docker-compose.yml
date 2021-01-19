@@ -3,12 +3,20 @@ services:
 
   web:
     build: .
+    restart: on-failure
     depends_on:
+      - mongo1
+      - mongo2
+      - mongo3
       - mongo-setup
     expose:
-      - 3001
+      - 8080
+      - 1818
     ports:
-      - 3001:3001
+      - 8080:8080
+      - 1818:1818
+    tty: true
+    command: ["node", "api/bin/www"]
 
   mongo-setup:
     container_name: mongo-setup
@@ -35,7 +43,7 @@ services:
     restart: always
     entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs0", "--journal", "--dbpath", "/data/db", "--enableMajorityReadConcern", "false" ]
     volumes:
-      - ./volumes/mongodb/mongo/data1/db:/data/db # This is where your volume will persist. e.g. VOLUME-DIR = ./volumes/mongodb
+      - ./volumes/mongodb/mongo/data1/db:/data/db
       - ./volumes/mongodb/mongo/data1/configdb:/data/configdb
 
   mongo2:

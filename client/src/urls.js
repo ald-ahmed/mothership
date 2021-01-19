@@ -2,7 +2,7 @@ let Urls = {};
 
 if (process.env.NODE_ENV === "production") {
     Urls = {
-        baseURL: "http://localhost:3001/configs",
+        baseURL: "http://localhost:8080/configs",
         socketURL: "http://localhost:1818/api/socket",
     };
 } else {

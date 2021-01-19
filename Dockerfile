@@ -10,11 +10,9 @@ COPY backend/package*.json ./api/
 RUN cd api && npm install
 COPY backend/ ./api/
 
-EXPOSE 3001
-EXPOSE 1818
+EXPOSE 8080
 
 CMD ["node", "./api/app.js"]
-
 
 # copy client into /usr/src/app/client
 # go into /usr/src/app/client and run npm install, npm build
