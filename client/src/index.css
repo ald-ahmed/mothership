@@ -23,12 +23,22 @@ form {
   display: block;
   position: absolute;
   margin: auto;
-  top: 50px;
+  top: 25px;
+
+  background: rgba(50, 50, 50, 0.85);
+  color: #ffffff;
+
+  margin-bottom: 1rem;
+  padding: 8px;
+  border-radius: 1px;
+  box-shadow: 0 1px 10px 0 rgba(0, 0, 0, 0.1), 0 2px 15px 0 rgba(0, 0, 0, 0.05);
+  justify-content: space-between;
+
 }
 
-#root {
-  overflow: auto;
-}
+/*#root {*/
+/*  overflow: auto;*/
+/*}*/
 
 body {
   position: fixed;
@@ -41,7 +51,6 @@ body {
 }
 
 .content {
-  padding-top: 10px;
   transform: translate3d(50%, 0, 0);
   text-align: left;
   background: white;
@@ -50,10 +59,9 @@ body {
   border-radius: 5px;
 }
 
-/*.Toastify__toast--warning{*/
-/*  color: #1a1a1a!important;*/
-/*}*/
-
+.Toastify__toast {
+  min-height: 32px!important;
+}
 .Toastify__toast--dark{
   background: #f1c40f00!important;
 }
@@ -61,3 +69,135 @@ body {
 .Toastify__close-button{
   display: none!important;
 }
+.Toastify__toast-container{
+  width: auto!important;
+}
+
+@media only screen and (max-width: 480px) {
+  .Toastify__toast-container{
+    width: 50vw!important;
+  }
+}
+
+label {
+  line-height: 2em;
+  margin: 10px;
+}
+
+span {
+  margin-right: 15px;
+}
+
+:root {
+  --status-indicator-size: 0.75em;
+  --status-indicator-animation-duration: 2s;
+
+  --status-indicator-color: rgb(216, 226, 233);
+  --status-indicator-color-semi: rgba(216, 226, 233, .5);
+  --status-indicator-color-transparent: rgba(216, 226, 233, 0);
+
+  --status-indicator-color-active: rgb(0, 149, 255);
+  --status-indicator-color-active-semi: rgba(0, 149, 255, .5);
+  --status-indicator-color-active-transparent: rgba(0, 149, 255, 0);
+
+  --status-indicator-color-positive: rgb(75, 210, 143);
+  --status-indicator-color-positive-semi: rgba(75, 210, 143, .5);
+  --status-indicator-color-positive-transparent: rgba(75, 210, 143, 0);
+
+  --status-indicator-color-intermediary: rgb(255, 170, 0);
+  --status-indicator-color-intermediary-semi: rgba(255, 170, 0, .5);
+  --status-indicator-color-intermediary-transparent: rgba(255, 170, 0, 0);
+
+  --status-indicator-color-negative: rgb(255, 77, 77);
+  --status-indicator-color-negative-semi: rgba(255, 77, 77, .5);
+  --status-indicator-color-negative-transparent: rgba(255, 77, 77, 0);
+}
+
+@keyframes status-indicator-pulse {
+  0%   { box-shadow: 0 0 0 0 var(--status-indicator-color-semi); }
+  70%  { box-shadow: 0 0 0 var(--status-indicator-size) var(--status-indicator-color-transparent); }
+  100% { box-shadow: 0 0 0 0 var(--status-indicator-color-transparent); }
+}
+
+@keyframes status-indicator-pulse-active {
+  0%   { box-shadow: 0 0 0 0 var(--status-indicator-color-active-semi); }
+  70%  { box-shadow: 0 0 0 var(--status-indicator-size) var(--status-indicator-color-active-transparent); }
+  100% { box-shadow: 0 0 0 0 var(--status-indicator-color-active-transparent); }
+}
+
+@keyframes status-indicator-pulse-positive {
+  0%   { box-shadow: 0 0 0 0 var(--status-indicator-color-positive-semi); }
+  70%  { box-shadow: 0 0 0 var(--status-indicator-size) var(--status-indicator-color-positive-transparent); }
+  100% { box-shadow: 0 0 0 0 var(--status-indicator-color-positive-transparent); }
+}
+
+@keyframes status-indicator-pulse-intermediary {
+  0%   { box-shadow: 0 0 0 0 var(--status-indicator-color-intermediary-semi); }
+  70%  { box-shadow: 0 0 0 var(--status-indicator-size) var(--status-indicator-color-intermediary-transparent); }
+  100% { box-shadow: 0 0 0 0 var(--status-indicator-color-intermediary-transparent); }
+}
+
+@keyframes status-indicator-pulse-negative {
+  0%   { box-shadow: 0 0 0 0 var(--status-indicator-color-negative-semi); }
+  70%  { box-shadow: 0 0 0 var(--status-indicator-size) var(--status-indicator-color-negative-transparent); }
+  100% { box-shadow: 0 0 0 0 var(--status-indicator-color-negative-transparent); }
+}
+
+status-indicator {
+  display: inline-block;
+  border-radius: 50%;
+  cursor: pointer;
+  width: var(--status-indicator-size);
+  height: var(--status-indicator-size);
+  background-color: var(--status-indicator-color);
+  margin-right: 10px;
+}
+
+status-indicator[pulse] {
+  animation-name: status-indicator-pulse;
+  animation-duration: var(--status-indicator-animation-duration);
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: normal;
+  /*animation-delay: 0;*/
+  animation-fill-mode: none;
+}
+
+status-indicator[active] {
+  background-color: var(--status-indicator-color-active);
+}
+
+status-indicator[active][pulse] {
+  animation-name: status-indicator-pulse-active;
+}
+
+status-indicator[positive] {
+  background-color: var(--status-indicator-color-positive);
+  animation-name: status-indicator-pulse-positive;
+}
+
+status-indicator[positive][pulse] {
+  animation-name: status-indicator-pulse-positive;
+}
+
+status-indicator[intermediary] {
+  background-color: var(--status-indicator-color-intermediary);
+}
+
+status-indicator[intermediary][pulse] {
+  animation-name: status-indicator-pulse-intermediary;
+}
+
+status-indicator[negative] {
+  background-color: var(--status-indicator-color-negative);
+  animation-name: status-indicator-pulse-negative;
+}
+
+status-indicator[negative][pulse] {
+  animation-name: status-indicator-pulse-negative;
+}
+
+.content{
+  white-space: nowrap;
+}
+
