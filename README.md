@@ -6,7 +6,7 @@
   Mothership
 </h1>
 
-<h4 align="center">Shared React & Threejs 3D Environment </h4>
+<h4 align="center">Live React & Threejs 3D Environment </h4>
 
 
 <blockquote align="center">
