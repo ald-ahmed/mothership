@@ -1,10 +1,26 @@
 
-## Mothership
-Mothership is a 3D shared environment that lets multiple clients create, update, and remove objects (refered to as robots) in realtime.
 
-![Mothership](./assets/mothershipHome.gif)
+<h1 align="center">
+  <a href="http://34.68.245.43:8080/"><img src="/assets/logo.png" width="250"/></a>
+  <br>
+  Mothership
+</h1>
+
+<h4 align="center">Shared React & Threejs 3D Environment </h4>
+
+
+<blockquote align="center">
+ Mothership is a 3D shared environment that lets multiple clients create, update, and remove objects in realtime.
+
+</blockquote>
+
+<p align="center">
+  <a href="#demo">Demo</a>&nbsp;|&nbsp;<a href="#how-it-works">How It Works</a>&nbsp;|&nbsp;<a href="#examples">Examples</a>
+</p>
+
+
 ## Demo
-- [Demo](http://34.68.245.43:8080/)
+- [http://34.68.245.43:8080/](http://34.68.245.43:8080/)
 
 
 ## Build
@@ -12,8 +28,9 @@ Mothership is a 3D shared environment that lets multiple clients create, update,
 To make things easy, I've dockerized both the backend and client (see Dockerfile). The MongoDB replica set has also been configured and dockerized see (docker-compose.yml).
 
 To build, clone this repo, cd to `/mothership`, then run
-
-    docker-compose up
+```bash
+$ docker-compose up
+```
 
 You should now be able to open `localhost:8080` on the browser and play around
 
@@ -30,8 +47,6 @@ The endpoint parses the request and adds the appropriate data to the database.
 
 In order to allow realtime functionality and detect changes in the database,
 the Mongo database is replicated. This has many advantages such as redundancy and high availability, but most importantly, it allows quickly detecting changes on the dataset without risk of tailing the oplog. 
-
-[comment]: <> (Since changes are detected at the database level, all change notification delay maintain a consistent cadence proportional to the size of the database. )
 
 As soon as the database detects a change, a change stream triggers the Socket.io implementation to send a message to the frontend. The frontend interprets this message and modifies the UI accordingly. 
 
@@ -52,6 +67,7 @@ The app also checks off PWA requirements and uses service workers in the backgro
 ![Mothership Architecture](./assets/performance.png)
 
 
-[comment]: <> (## Features)
+## Examples
+
 
 
