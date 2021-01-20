@@ -1,12 +1,12 @@
-var mongoose = require('mongoose');
-var Schema = mongoose.Schema;
+const mongoose = require("mongoose");
+const Schema = mongoose.Schema;
 
 // Robot schema used in the database
-var RobotSchema   = new Schema({
+const RobotSchema = new Schema({
   humanName: String,
   color: String,
-  position: { x: Number, y: Number, z: Number},
-  rating: Number
+  position: { x: Number, y: Number, z: Number },
+  rating: Number,
 });
 
-module.exports = mongoose.model('Robot', RobotSchema);
+module.exports = mongoose.model("Robot", RobotSchema);

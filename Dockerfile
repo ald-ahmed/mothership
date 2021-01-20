@@ -1,3 +1,9 @@
+# copy client into /usr/src/app/client
+# go into /usr/src/app/client and run npm install, npm build
+# copy /usr/src/app/client/build into /root/client/build
+# copy backend/package*.json into /root/api/
+# go into api and npm install
+
 FROM node:14 AS ui-build
 WORKDIR /usr/src/app
 COPY client/ ./client/
@@ -12,11 +18,4 @@ COPY backend/ ./api/
 
 EXPOSE 8080
 
-CMD ["node", "./api/app.js"]
-
-# copy client into /usr/src/app/client
-# go into /usr/src/app/client and run npm install, npm build
-# copy /usr/src/app/client/build into /root/client/build
-# copy backend/package*.json into /root/api/
-# go into api and npm install
-
+#CMD ["node", "./api/app.js"]

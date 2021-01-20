@@ -1,4 +1,4 @@
-
+// api urls configuration file
 
 let urls = {
     baseURL: "/configs",

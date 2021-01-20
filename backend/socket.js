@@ -1,4 +1,6 @@
 
+// to reduce development headaches
+// do not include in production
 const io = require('socket.io')({
     cors: {
         origin: "*",
@@ -6,11 +8,11 @@ const io = require('socket.io')({
     }
 });
 
-const socket = {
-    io: io
-};
+const socket = {io: io};
 
+// open a connection on /api/socket
 io.of('/api/socket').on("connection", (socket) => {
+
     console.log("socket.io: User connected: ", socket.id);
 
     socket.on("disconnect", () => {

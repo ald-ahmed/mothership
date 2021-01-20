@@ -1,17 +1,18 @@
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
-import { Canvas, extend, useFrame, useThree } from "react-three-fiber";
-import React, { Component, useRef, useState } from "react";
+import {CameraControls, ConfigForm} from "./controlComponents.js";
+import { Canvas, useFrame, useThree } from "react-three-fiber";
+import {unboxAPIConfigObject, get3DPosition} from "./utils.js";
 import { toast, ToastContainer } from "react-toastify";
 import useEventListener from "@use-it/event-listener";
+import React, { Component, useState } from "react";
 import { Provider, useCannon } from "./useCannon";
 import LoadingScreen from "react-loading-screen";
 import { isBrowser } from "react-device-detect";
 import "react-toastify/dist/ReactToastify.css";
 import { useDrag } from "react-use-gesture";
 import { Html } from "@react-three/drei";
+let humanNames = require("human-names");
 import io from "socket.io-client";
-import Switch from "react-switch";
 import ReactDOM from "react-dom";
 import * as CANNON from "cannon";
 import * as THREE from "three";
@@ -19,25 +20,21 @@ import urls from "./urls.js";
 import axios from "axios";
 import "./index.css";
 
-let humanNames = require("human-names");
-extend({ OrbitControls });
-
-//socket.io connection
+// establish a socket connection
 const socket = io(`${urls.socketURL}`);
 
-let initX;
-let initY;
+// for distinguishing mouse clicks from mouse drags
+let initX, initY;
 
-function DraggableDodecahedron(props) {
+// the robot 3D component (visualized as a ball)
+function Robot(props) {
+
     const { camera, mouse } = useThree();
-
     const [position, setPosition] = useState(props.identity.position);
-    const [key, _] = useState(props.identity.id);
-
     const [hovered, setHover] = useState(false);
-
     const [quaternion, setQuaternion] = useState([0, 0, 0, 0]);
 
+    // use cannon js so it can be used in the physics engine
     const { ref, body } = useCannon(
         { bodyProps: { mass: 5 } },
         (body) => {
@@ -47,29 +44,46 @@ function DraggableDodecahedron(props) {
         []
     );
 
+    // detect clicks and drags of the robot
     const bind = useDrag(
         ({ event, offset: [,], xy: [x, y], first, last }) => {
-            const pos = get3DPosition({ screenX: mouse.x, screenY: mouse.y, camera });
+
+            // get the 3d world coordinate of the 2d mouse click
+            const pos = get3DPosition({
+                screenX: mouse.x,
+                screenY: mouse.y,
+                camera,
+            });
+
+            // check if the robot has been dragged sufficiently (more than 0.05 in x and y)
             const positionHasChanged =
                 Math.abs(pos.x - initX) > 0.05 && Math.abs(pos.y - initY) > 0.05;
 
+            // if this is the first click (onMouseDown)
+            // then set mass to 0 so we can lift the robot up (z direction)
             if (first) {
                 body.mass = 0;
                 body.updateMassProperties();
                 initX = pos.x;
                 initY = pos.y;
-            } else if (last) {
+            }
+            // if this is the last click (onMouseUp)
+            // then set mass to 5 so the robot can fall
+            else if (last) {
                 body.mass = 5;
                 body.updateMassProperties();
 
+                // if this was a drag, log a position change
                 if (positionHasChanged) {
-                    props.logPositionChange(key, body.position);
-                } else {
-                    props.logSelection(key, props.identity);
+                    props.logPositionChange(props.identity.id, body.position);
+                }
+                // otherwise set the robot as selected
+                else {
+                    props.logSelection(props.identity);
                 }
             }
-
-            if (!first && positionHasChanged) {
+            // if this robot was selected and has been sufficiently dragged, move it
+            if (!first && positionHasChanged && props.active) {
                 body.position.set(pos.x, pos.y, -0.7);
             }
         },
@@ -77,10 +91,12 @@ function DraggableDodecahedron(props) {
     );
 
     useFrame(() => {
-        // Sync cannon body position with three js
+        // sync cannon body position with three js (keep the physics engine state updated)
         const deltaX = Math.abs(body.position.x - position.x);
         const deltaY = Math.abs(body.position.y - position.y);
         const deltaZ = Math.abs(body.position.z - position.z);
+
+        // if the updates happen too frequently it'll stress the processor
         if (deltaX > 0.001 || deltaY > 0.001 || deltaZ > 0.001) {
             setPosition(body.position.clone());
         }
@@ -92,21 +108,19 @@ function DraggableDodecahedron(props) {
             setQuaternion(body.quaternion.toArray());
         }
     });
-    // {/*rgb(75,110,222)*/}
 
+    // return the robot component
     return (
         <mesh
-            onPointerOver={(e) => setHover(true)}
-            onPointerOut={(e) => setHover(false)}
+            onPointerOver={() => setHover(true)}
+            onPointerOut={() => setHover(false)}
             ref={ref}
             castShadow={true}
             receiveShadow={false}
             position={[position.x, position.y, position.z]}
             quaternion={quaternion}
             {...bind()}
-            onClick={(e) => {
-                e.stopPropagation();
-            }}
+            onClick={(e) => {e.stopPropagation();}}
         >
             <dodecahedronBufferGeometry attach="geometry" />
             <meshLambertMaterial
@@ -123,11 +137,17 @@ function DraggableDodecahedron(props) {
         </mesh>
     );
 }
+
+// the plane 3D component which everything sits on
 function Plane(props) {
+
+    // assign a mass of 0 to indicate a fixed object
     const { ref } = useCannon({ bodyProps: { mass: 0 } }, (body) => {
         body.addShape(new CANNON.Plane());
         body.position.set(...props.position);
     });
+
+    // return the plane component. If clicked, call onPlaneClick (see Index component)
     return (
         <mesh
             ref={ref}
@@ -140,97 +160,25 @@ function Plane(props) {
         </mesh>
     );
 }
-function ConfigForm(props) {
-    const onSubmit = (data) => console.log(data);
 
-    return (
-        <form onSubmit={onSubmit}>
-            <label>
-                <span>Tap to Add Mode</span>
-                <Switch
-                    onColor={"#2b6dea"}
-                    offColor={"#bcbcbc"}
-                    onChange={(checked) => props.changeAddMode(checked)}
-                    checked={props.clickToAdd}
-                />
-            </label>
-            <br />
-
-            <label>
-                <span>Human Name</span>
-                <input
-                    type="text"
-                    placeholder="Human Name"
-                    name="Human Name"
-                    value={props.humanName || ""}
-                    onChange={(e) => props.changeHumanName(e.target.value)}
-                />
-            </label>
-            <br />
-
-            <label>
-                <span>Key</span>
-                <input
-                    readOnly
-                    type="text"
-                    placeholder="Object Key"
-                    name="Object Key"
-                    value={props.name || ""}
-                />
-            </label>
-            <br />
-
-            <label>
-                <span>Color</span>
-
-                <select
-                    name="Color"
-                    value={props.color || ""}
-                    onChange={(e) => props.changeColor(e.target.value)}
-                >
-                    <option value="white">White</option>
-                    <option value="#3C3C3C">Black</option>
-                    <option value="#D7263D">Red</option>
-                    <option value="#F5D547">Yellow</option>
-                </select>
-            </label>
-            <br />
-            <label>
-                <span>Speed</span>
-
-                <input
-                    type="range"
-                    placeholder="Rating"
-                    name="Rating"
-                    value={props.rating || ""}
-                    onChange={(e) => props.changeRating(e.target.value)}
-                />
-            </label>
-            <br />
-
-            <label>
-                <span>Delete</span>
-
-                <button type="button" onClick={props.deleteObject}>
-                    Delete
-                </button>
-            </label>
-        </form>
-    );
-}
+// the index component encapsulating lights, plane, and robots
 function Index(props) {
     const { mouse, camera } = useThree();
 
-    const onPlaneClick = (e) => {
+    // get the 3d world coordinate of the 2d mouse click
+    const onPlaneClick = () => {
         const position = get3DPosition({
             screenX: mouse.x,
             screenY: mouse.y,
             camera,
         });
+
+        // send the click event to your parent to handle it
         props.handlePlaneClick(position);
     };
 
-    const mouseWheel = (e) => {
+    // helper that zooms in and out when mouse is scrolled
+    const mouseWheelScrolled = (e) => {
         let delta = e.wheelDelta;
         delta = delta / 240;
         delta = -delta;
@@ -244,8 +192,11 @@ function Index(props) {
         }
     };
 
-    useEventListener("wheel", mouseWheel);
+    // wait for the mouse scroll and call mouseWheelScrolled when it occurs
+    useEventListener("wheel", mouseWheelScrolled);
 
+    // add lights, robots, and plane then return the component
+    // note that the prop objects is the array of robots passed from the parent
     return (
         <React.Fragment>
             <Provider>
@@ -259,10 +210,10 @@ function Index(props) {
                 />
 
                 {props.objects.map((t) => (
-                    <DraggableDodecahedron
+                    <Robot
                         key={t.id}
                         identity={t}
-                        active={t.id === props.chosen}
+                        active={t.id === props.selectedObjectID}
                         logPositionChange={props.logPositionChange}
                         logSelection={props.logSelection}
                     />
@@ -273,156 +224,113 @@ function Index(props) {
         </React.Fragment>
     );
 }
-function CameraControls(props) {
-    const {
-        camera,
-        gl: { domElement },
-    } = useThree();
 
-    const controls = useRef();
-
-    return (
-        <orbitControls
-            ref={controls}
-            enabled={!props.selectedSomething}
-            enablePan={false}
-            minAzimuthAngle={0}
-            maxAzimuthAngle={0}
-            minPolarAngle={Math.PI / 2}
-            maxPolarAngle={(Math.PI * 9.5) / 10}
-            minDistance={50}
-            maxDistance={100}
-            args={[camera, domElement]}
-        />
-    );
-}
-
-const unboxAPIConfigObject = (objData) => {
-    if (objData._id && objData.humanName && objData.position && objData.color) {
-        return {
-            id: objData._id,
-            position: objData.position,
-            humanName: objData.humanName,
-            color: objData.color,
-        };
-    }
-    return {};
-};
-const get3DPosition = ({ screenX, screenY, camera }) => {
-    var vector = new THREE.Vector3(screenX, screenY, 0.5);
-    vector.unproject(camera);
-    var dir = vector.sub(camera.position).normalize();
-    var distance = -camera.position.z / dir.z;
-    return camera.position.clone().add(dir.multiplyScalar(distance));
-};
-
+// entry point of the react app
+// handles all the communication from/to server
 class App extends Component {
+
     constructor(props) {
         super(props);
 
         this.state = {
-            objects: [],
-            chosen: "",
-            humanName: "",
-            color: "",
-            rating: 0,
-            clickToAdd: true,
-            loading: true,
+            objects: [], // list of object configs to be turned into Robot components in Index
+            selectedObjectID: "", // id of the object currently selected
+            humanName: "", // human name of the selected object
+            color: "", // color of the selected object
+            rating: 0, // rating or speed of the selected object
+            clickToAdd: true, // use clicks on plane creates a new object
+            loading: true, // loading screen is showing
         };
     }
 
-    async fetchObjects() {
-        console.log("Fetching objects");
-
-        try {
-            const response = await axios.get(`${urls.baseURL}`);
-
-            if (response.status === 200) {
-                // console.log(response.data);
-
-                let objects = response.data.map((t) => unboxAPIConfigObject(t));
-
-                objects = objects.filter(function (el) {
-                    return el.id != null;
-                });
-
-                this.setState({
-                    objects: objects,
-                    loading: false,
-                });
-            } else {
-                alert(response.data.message);
-            }
-        } catch (error) {
-            console.log("Error with fetching: ", error);
-        }
-    }
-
+    // once mounted, the component should connect to server socket
     componentDidMount = async () => {
-        socket.on("connect", () => {
-            console.log("got connection");
 
+        // once connected, fetch all the objects and display them on screen
+        socket.on("connect", () => {
+
+            console.log("got connection to socket");
             this.fetchObjects();
 
+            // if disconnected for whatever reason, show loading screen
+            // note once socket reconnects, fetchObjects call above will hide loading screen
             socket.on("disconnect", () => {
-                console.log("lost connection");
+                console.log("lost connection to socket");
                 this.setState({ loading: true });
             });
+
         });
 
+        // once you get a new robot from server, unpack it and insert it into our state
         socket.on("newRobot", (realtimeUpdate) => {
             console.log("got new robot from server", realtimeUpdate);
 
             const objData = realtimeUpdate.document;
 
-            const newObj = {
-                id: objData._id,
-                position: objData.position,
-                humanName: objData.humanName,
-                color: objData.color,
-            };
+            // unbox server object into a robot object
+            const newRobot = unboxAPIConfigObject(objData);
 
-            toast.dark("Created " + newObj.humanName);
-
+            // add this robot object to list of objects
             this.setState((state) => ({
-                objects: [...state.objects, newObj],
+                objects: [...state.objects, newRobot],
             }));
+
+            // show a notification that new robot has been created
+            toast.dark("Created " + newRobot.humanName);
+
         });
 
+        // once you get a robot was deleted server, remove it from our state
         socket.on("deletedRobot", (realtimeUpdate) => {
-            let objects = [...this.state.objects];
-            let index = 0;
 
-            let _ = objects.find((o, i) => {
+            // deleting an object from state requires
+            // copying current state
+            let objects = [...this.state.objects];
+            let index = -1;
+
+            // find the index of the deleted object using id in our state
+            objects.find((o, i) => {
                 if (o.id === realtimeUpdate.id) {
                     index = i;
                     return true; // stop searching
                 }
             });
 
-            const item = objects.splice(index, 1)[0];
+            // object was never in our state, stop here
+            if (index === -1){return}
 
+            // get the object that is to be deleted from our state
+            const objectToBeDeleted = objects.splice(index, 1)[0];
+
+            // establish a new state without that object
             this.setState({ objects: objects }, function () {
-                if (item.id === this.state.chosen) {
+                // in case the object deleted was selected, deselect it
+                if (objectToBeDeleted.id === this.state.selectedObjectID) {
                     this.setState({
-                        chosen: "",
+                        selectedObjectID: "",
                         humanName: "",
                         color: "",
                         rating: 0,
                     });
                 }
 
-                toast.error("Deleted " + item.humanName);
+                // show a notification that a robot has been deleted
+                toast.error("Deleted " + objectToBeDeleted.humanName);
             });
         });
 
         socket.on("modifiedRobot", (realtimeUpdate) => {
-            let objects = [...this.state.objects];
-            let index = 0;
 
-            let _ = objects.find((o, i) => {
+            // modifying an object from state requires
+            // copying current state
+            let objects = [...this.state.objects];
+            let index = -1;
+
+            // find the index of the modified object using id in our state
+            objects.find((o, i) => {
                 if (o.id === realtimeUpdate.id) {
                     let item = { ...objects[i] };
+                    // update the objects information
                     item = { ...item, ...realtimeUpdate.updatedFields };
                     objects[i] = item;
                     index = i;
@@ -430,49 +338,89 @@ class App extends Component {
                 }
             });
 
-            const item = objects.splice(index, 1)[0];
+            // object was never in our state, stop here
+            if (index === -1){return}
 
+            // like delete, modifying an object alone won't trigger a new render
+            // we have to delete it from array and then insert it to the end
+            const objectModified = objects.splice(index, 1)[0];
+
+            // establish a new state with that modified object
             this.setState({ objects: objects }, function () {
-                if (item.id === this.state.chosen) {
+                // in case the object modified was selected, select it again
+                if (objectModified.id === this.state.selectedObjectID) {
                     this.setState(
                         {
-                            objects: [...objects, item],
-                            chosen: item.id,
-                            humanName: item.humanName,
-                            color: item.color,
-                            rating: item.rating,
+                            objects: [...objects, objectModified],
+                            selectedObjectID: objectModified.id,
+                            humanName: objectModified.humanName,
+                            color: objectModified.color,
+                            rating: objectModified.rating,
                         },
                         function () {
-                            toast.warn("Modified " + item.humanName);
+                            // call back after state change, show notification
+                            toast.warn("Modified " + objectModified.humanName);
                         }
                     );
                 } else {
-                    this.setState({ objects: [...objects, item] }, function () {
-                        toast.warn("Modified " + item.humanName);
+                    this.setState({ objects: [...objects, objectModified] }, function () {
+                        // call back after state change, show notification
+                        toast.warn("Modified " + objectModified.humanName);
                     });
                 }
             });
         });
     };
 
-    logSelection = (key, identity) => {
-        console.log(key, "now selected");
 
+    // triggers a get api call to get all robot configs from server
+    async fetchObjects() {
+        // console.log("Fetching objects");
+        try {
+            const response = await axios.get(`${urls.baseURL}`);
+
+            if (response.status === 200) {
+
+                // unbox each received object config into a robot object (see utils.js)
+                let objects = response.data.map((t) => unboxAPIConfigObject(t));
+                objects = objects.filter(function (el) {return el.id != null;});
+
+                // erase all the objects and set the loading to off in case it was loading
+                this.setState({
+                    objects: objects,
+                    loading: false,
+                });
+
+            } else {
+                console.log("Error fetching objects, got response "+response.status);
+            }
+        } catch (error) {
+            console.log("Error with fetching: ", error);
+        }
+    }
+
+    // trigger a new state change if an object gets selected
+    // called by child component Index
+    logSelection = (identity) => {
+        // console.log(identity.id, "now selected");
         this.setState({
-            chosen: key,
+            selectedObjectID: identity.id,
             humanName: identity.humanName,
             color: identity.color,
             rating: identity.rating,
         });
     };
 
+    // tell the server an object position has been modified
+    // an actual state update is made when the socket receives
+    // modified robot message
     logPositionChange = async (key, position) => {
         console.log(key, "changed", position);
         if (!key || !position) {
             return;
         }
         try {
-            const response = await axios.put(`${urls.baseURL}\\${key}`, {
+            await axios.put(`${urls.baseURL}\\${key}`, {
                 position: position,
             });
         } catch (error) {
@@ -480,11 +428,11 @@ class App extends Component {
         }
     };
 
+    // tell the server an object has been created
+    // an actual state update is made when the socket receives
+    // new robot message
     logCreation = async (newObj) => {
-        if (!newObj) {
-            return;
-        }
-
+        if (!newObj) {return}
         try {
             await axios.post(`${urls.baseURL}`, {
                 humanName: newObj.humanName,
@@ -496,15 +444,21 @@ class App extends Component {
         }
     };
 
+    // creates or selects a robot when
+    // the user clicks on the plane
     handlePlaneClick(position) {
-        if (this.state.chosen) {
+
+        if (this.state.selectedObjectID) { // if something is selected it will deselect it
             this.setState({
-                chosen: "",
+                selectedObjectID: "",
                 humanName: "",
                 color: "",
                 rating: 0,
             });
-        } else if (this.state.clickToAdd) {
+        } else if (this.state.clickToAdd) { // changed by the ConfigForm component
+
+            // creates some default parameters of new object and sends
+            // a request to the sever to create it via logCreation
             const addedObject = {
                 humanName: humanNames.allRandomEn(),
                 position: position,
@@ -515,27 +469,26 @@ class App extends Component {
         }
     }
 
+    // tells the server to delete the selected robot
     async deleteObject() {
-        if (!this.state.chosen) {
-            return;
-        }
+        if (!this.state.selectedObjectID) {return}
 
         try {
-            const response = await axios.delete(
-                `${urls.baseURL}\\${this.state.chosen}`
+            await axios.delete(
+                `${urls.baseURL}\\${this.state.selectedObjectID}`
             );
         } catch (error) {
             console.log("Error with deleting object: ", error);
         }
     }
 
+    // tells the server to update the selected robot
+    // if its a position change logPositionChange will send it
     async updateObject(prop) {
-        if (!prop.key) {
-            return;
-        }
+        if (!prop.key) {return}
 
         try {
-            const response = await axios.put(`${urls.baseURL}\\${prop.key}`, {
+            await axios.put(`${urls.baseURL}\\${prop.key}`, {
                 humanName: prop.humanName,
                 color: prop.color,
                 rating: prop.rating,
@@ -545,18 +498,22 @@ class App extends Component {
         }
     }
 
+    // used by form to update human name of selected object
     changeHumanName = (newName) => {
-        this.updateObject({ key: this.state.chosen, humanName: newName });
+        this.updateObject({ key: this.state.selectedObjectID, humanName: newName });
     };
 
+    // used by form to update color of selected object
     changeColor = (newColor) => {
-        this.updateObject({ key: this.state.chosen, color: newColor });
+        this.updateObject({ key: this.state.selectedObjectID, color: newColor });
     };
 
+    // used by form to update rating or speed of selected object
     changeRating = (newRating) => {
-        this.updateObject({ key: this.state.chosen, rating: newRating });
+        this.updateObject({ key: this.state.selectedObjectID, rating: newRating });
     };
 
+    // used by form to update the add mode (clicks on plane make new objects)
     changeAddMode = (addMode) => {
         this.setState({ clickToAdd: addMode });
     };
@@ -572,7 +529,7 @@ class App extends Component {
                     logoSrc="/logo512.png"
                     text=""
                 >
-                    Loaded
+                    |
                 </LoadingScreen>
 
                 <Canvas
@@ -584,11 +541,11 @@ class App extends Component {
                     }}
                 >
                     {isBrowser && (
-                        <CameraControls selectedSomething={this.state.chosen !== ""} />
+                        <CameraControls selectedSomething={this.state.selectedObjectID !== ""} />
                     )}
 
                     <Index
-                        chosen={this.state.chosen}
+                        selectedObjectID={this.state.selectedObjectID}
                         objects={this.state.objects}
                         logPositionChange={this.logPositionChange.bind(this)}
                         logSelection={this.logSelection.bind(this)}
@@ -597,7 +554,7 @@ class App extends Component {
                 </Canvas>
 
                 <ConfigForm
-                    name={this.state.chosen}
+                    name={this.state.selectedObjectID}
                     humanName={this.state.humanName}
                     changeHumanName={this.changeHumanName.bind(this)}
                     color={this.state.color}
@@ -625,12 +582,9 @@ class App extends Component {
     }
 }
 
-if (module.hot) {
-    module.hot.accept();
-}
+if (module.hot) {module.hot.accept();}
+
 ReactDOM.render(<App />, document.getElementById("root"));
 
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: https://cra.link/PWA
+// enable service work to make the app a PWA
 serviceWorkerRegistration.register();

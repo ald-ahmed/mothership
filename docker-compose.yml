@@ -11,10 +11,8 @@ services:
       - mongo-setup
     expose:
       - 8080
-      - 1818
     ports:
       - 8080:8080
-      - 1818:1818
     tty: true
     command: ["node", "api/bin/www"]
 
