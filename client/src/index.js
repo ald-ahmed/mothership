@@ -11,7 +11,6 @@ import { isBrowser } from "react-device-detect";
 import "react-toastify/dist/ReactToastify.css";
 import { useDrag } from "react-use-gesture";
 import { Html } from "@react-three/drei";
-let humanNames = require("human-names");
 import io from "socket.io-client";
 import ReactDOM from "react-dom";
 import * as CANNON from "cannon";
@@ -19,6 +18,7 @@ import * as THREE from "three";
 import urls from "./urls.js";
 import axios from "axios";
 import "./index.css";
+let humanNames = require("human-names");
 
 // establish a socket connection
 const socket = io(`${urls.socketURL}`);
