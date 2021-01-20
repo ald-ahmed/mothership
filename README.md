@@ -37,6 +37,7 @@ You should now be able to open `localhost:8080` on the browser and play around
 
 ## Examples
 
+
 ### Select
 
 To select an object, hover over it (or on mobile, tap it). The pulsing dot indicates it's now selected. Click or tap away to deselect.
@@ -44,12 +45,12 @@ To select an object, hover over it (or on mobile, tap it). The pulsing dot indic
 ![orbit](./assets/select.gif)
 
 
-### Orbit
 
-To orbit around the environment, make sure no object is selected then click and drag the screen. Note that the orbit is fixed on mobile devices to avoid expensive rendering.
+### Move/Modify
 
-![orbit](./assets/orbit.gif)
+To move an object, select it and drag it across the plane. Once selected, you can modify it using the form. To remove it, click the delete button.
 
+![orbit](./assets/move.gif)
 
 ### Add
 
@@ -58,11 +59,11 @@ To add a new object, turn on `tap to add mode` and click anywhere on the plane.
 ![add](./assets/add.gif)
 
 
-### Move/Modify
+### Orbit
 
-To move an object, select it and drag it across the plane. Once selected, you can modify it using the form. To remove it, click the delete button.
+To orbit around the environment, make sure no object is selected then click and drag the screen. Note that the orbit is fixed on mobile devices to avoid expensive rendering.
 
-![orbit](./assets/move.gif)
+![orbit](./assets/orbit.gif)
 
 
 ## How It Works
