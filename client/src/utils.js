@@ -9,12 +9,13 @@ class Robot {
         this.color = color
     }
 
-    calcDistance(secondPosition) {
-        return ((this.position.x - secondPosition.x)^2 +
-            (this.position.y - secondPosition.y)^2 +
-            (this.position.z - secondPosition.z)^2)^0.5;
-    }
 
+}
+
+export function calcDistance(firstRobot, secondRobot) {
+    return ((firstRobot.position.x - secondRobot.position.x)**2 +
+        (firstRobot.position.y - secondRobot.position.y)**2 +
+        (firstRobot.position.z - secondRobot.position.z)**2)**0.5;
 }
 
 export const unboxAPIConfigObject = (objData) => {

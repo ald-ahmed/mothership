@@ -1,9 +1,10 @@
 import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
 import {CameraControls, ConfigForm} from "./controlComponents.js";
 import { Canvas, useFrame, useThree } from "react-three-fiber";
-import {unboxAPIConfigObject, get3DPosition} from "./utils.js";
+import {unboxAPIConfigObject, get3DPosition, calcDistance} from "./utils.js";
 import { toast, ToastContainer } from "react-toastify";
 import useEventListener from "@use-it/event-listener";
+import WebNotification from 'react-web-notifications'
 import React, { Component, useState } from "react";
 import { Provider, useCannon } from "./useCannon";
 import LoadingScreen from "react-loading-screen";
@@ -20,13 +21,17 @@ import axios from "axios";
 import "./index.css";
 let humanNames = require("human-names");
 
+// will issue a web notification if an object
+// is moved a distance equal or greater than this
+const DISTANCE_THRESHOLD = 50;
+
 // establish a socket connection
 const socket = io(`${urls.socketURL}`);
 
 // for distinguishing mouse clicks from mouse drags
 let initX, initY;
 
-// the robot 3D component (visualized as a ball)
+// the robot 3D component (visualized as a ballish shape)
 function Robot(props) {
 
     const { camera, mouse } = useThree();
@@ -238,13 +243,32 @@ class App extends Component {
             humanName: "", // human name of the selected object
             color: "", // color of the selected object
             rating: 0, // rating or speed of the selected object
-            clickToAdd: true, // use clicks on plane creates a new object
+            clickToAdd: false, // use clicks on plane creates a new object
             loading: true, // loading screen is showing
+            notificationTitle: "Object moved far!",
+            notificationOptions: {},
+            notificationIgnored: true
         };
+
+        // the following are passed down to components so we bind them
+        this.logPositionChange = this.logPositionChange.bind(this)
+        this.logSelection = this.logSelection.bind(this)
+        this.handlePlaneClick = this.handlePlaneClick.bind(this)
+        this.changeHumanName = this.changeHumanName.bind(this)
+        this.changeColor = this.changeColor.bind(this)
+        this.changeRating = this.changeRating.bind(this)
+        this.deleteObject = this.deleteObject.bind(this)
+        this.changeAddMode = this.changeAddMode.bind(this)
+
     }
+
 
     // once mounted, the component should connect to server socket
     componentDidMount = async () => {
+
+        if (window.Notification) {
+            window.Notification.requestPermission();
+        }
 
         // once connected, fetch all the objects and display them on screen
         socket.on("connect", () => {
@@ -263,7 +287,6 @@ class App extends Component {
 
         // once you get a new robot from server, unpack it and insert it into our state
         socket.on("newRobot", (realtimeUpdate) => {
-            console.log("got new robot from server", realtimeUpdate);
 
             const objData = realtimeUpdate.document;
 
@@ -324,15 +347,18 @@ class App extends Component {
             // modifying an object from state requires
             // copying current state
             let objects = [...this.state.objects];
+
             let index = -1;
+            let distanceChange = 0;
 
             // find the index of the modified object using id in our state
             objects.find((o, i) => {
                 if (o.id === realtimeUpdate.id) {
-                    let item = { ...objects[i] };
+                    let itemBefore = { ...objects[i] };
                     // update the objects information
-                    item = { ...item, ...realtimeUpdate.updatedFields };
-                    objects[i] = item;
+                    let itemAfter = { ...itemBefore, ...realtimeUpdate.updatedFields };
+                    distanceChange = calcDistance(itemBefore, itemAfter)
+                    objects[i] = itemAfter;
                     index = i;
                     return true; // stop searching
                 }
@@ -341,12 +367,13 @@ class App extends Component {
             // object was never in our state, stop here
             if (index === -1){return}
 
+
             // like delete, modifying an object alone won't trigger a new render
             // we have to delete it from array and then insert it to the end
             const objectModified = objects.splice(index, 1)[0];
 
             // establish a new state with that modified object
-            this.setState({ objects: objects }, function () {
+            this.setState({ objects: objects, showNotification: distanceChange > DISTANCE_THRESHOLD }, function () {
                 // in case the object modified was selected, select it again
                 if (objectModified.id === this.state.selectedObjectID) {
                     this.setState(
@@ -355,11 +382,13 @@ class App extends Component {
                             selectedObjectID: objectModified.id,
                             humanName: objectModified.humanName,
                             color: objectModified.color,
-                            rating: objectModified.rating,
+                            rating: objectModified.rating
+
                         },
                         function () {
                             // call back after state change, show notification
                             toast.warn("Modified " + objectModified.humanName);
+
                         }
                     );
                 } else {
@@ -375,7 +404,7 @@ class App extends Component {
 
     // triggers a get api call to get all robot configs from server
     async fetchObjects() {
-        // console.log("Fetching objects");
+
         try {
             const response = await axios.get(`${urls.baseURL}`);
 
@@ -402,7 +431,7 @@ class App extends Component {
     // trigger a new state change if an object gets selected
     // called by child component Index
     logSelection = (identity) => {
-        // console.log(identity.id, "now selected");
+
         this.setState({
             selectedObjectID: identity.id,
             humanName: identity.humanName,
@@ -415,7 +444,7 @@ class App extends Component {
     // an actual state update is made when the socket receives
     // modified robot message
     logPositionChange = async (key, position) => {
-        console.log(key, "changed", position);
+
         if (!key || !position) {
             return;
         }
@@ -529,7 +558,7 @@ class App extends Component {
                     logoSrc="/logo512.png"
                     text=""
                 >
-                    |
+                    <div style={{display: "none"}}>loaded</div>
                 </LoadingScreen>
 
                 <Canvas
@@ -547,22 +576,22 @@ class App extends Component {
                     <Index
                         selectedObjectID={this.state.selectedObjectID}
                         objects={this.state.objects}
-                        logPositionChange={this.logPositionChange.bind(this)}
-                        logSelection={this.logSelection.bind(this)}
-                        handlePlaneClick={this.handlePlaneClick.bind(this)}
+                        logPositionChange={this.logPositionChange}
+                        logSelection={this.logSelection}
+                        handlePlaneClick={this.handlePlaneClick}
                     />
                 </Canvas>
 
                 <ConfigForm
                     name={this.state.selectedObjectID}
                     humanName={this.state.humanName}
-                    changeHumanName={this.changeHumanName.bind(this)}
+                    changeHumanName={this.changeHumanName}
                     color={this.state.color}
-                    changeColor={this.changeColor.bind(this)}
+                    changeColor={this.changeColor}
                     rating={this.state.rating}
-                    changeRating={this.changeRating.bind(this)}
-                    deleteObject={this.deleteObject.bind(this)}
-                    changeAddMode={this.changeAddMode.bind(this)}
+                    changeRating={this.changeRating}
+                    deleteObject={this.deleteObject}
+                    changeAddMode={this.changeAddMode}
                     clickToAdd={this.state.clickToAdd}
                 />
 
@@ -577,6 +606,14 @@ class App extends Component {
                     draggable
                     pauseOnHover
                 />
+
+                {this.state.showNotification && <WebNotification
+                    title="Object moved a lot!"
+                    timeout={9000}
+                    icon="logo192.png"
+                    onClickFn={ () => this.setState({showNotification: false}) }
+                />}
+
             </>
         );
     }

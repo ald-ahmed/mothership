@@ -10,7 +10,7 @@
 
 
 <blockquote align="center">
- Mothership is a 3D shared environment that lets multiple clients create, update, and remove objects in realtime.
+ Mothership is a 3D shared environment that lets multiple clients create, update, and remove objects (referred to as 'robots') in realtime.
 
 </blockquote>
 
@@ -40,7 +40,7 @@ Mothership is built using React, Socket.io, and Threejs on the frontend (see fol
 
 The following diagram shows how system communication is done.
 
-![Mothership Architecture](./assets/architecture.png)
+![architecture](./assets/architecture.png)
 
 In order to create, update, or modify an object on the UI, an API call is made to the appropriate express endpoint.
 The endpoint parses the request and adds the appropriate data to the database.
@@ -52,22 +52,49 @@ As soon as the database detects a change, a change stream triggers the Socket.io
 
 The UI doesn't show a newly created object until it receives a confirmation from the server that a new object has been added to the database. This is important because it helps avoid a UI rollback if the object is created on the user's machine but isn't reflected in the database due to some server failure. The following storyboard shows an example of this.
 
-![Mothership Architecture](./assets/story.png)
-
-Because it uses reusable Threejs components via React, it's quite fast.
-
-![Mothership Architecture](./assets/scores.png)
+![story](./assets/story.png)
 
 Since this is a realtime app, if the user is disconnected due to a network error, a loading overlay screen is shown until the connection is reestablished.
 
-![Mothership Architecture](./assets/offline.gif)
+![offline](./assets/offline.gif)
 
-The app also checks off PWA requirements and uses service workers in the background. According to Lighthouse:
 
-![Mothership Architecture](./assets/performance.png)
+Because it uses reusable Threejs components via React, it's quite fast. According to Lighthouse:
+
+![scores](./assets/scores.png)
+
+
+The app also checks off PWA requirements and uses service workers in the background.
+
+![performance](./assets/performance.png)
 
 
 ## Examples
 
+### Select
 
+To select an object, hover over it (or on mobile, tap it). The pulsing dot indicates it's now selected. Click or tap away to deselect.
+
+![orbit](./assets/select.gif)
+
+
+### Orbit
+
+To orbit around the environment, make sure no object is selected then click and drag the screen. Note that the orbit is fixed on mobile devices to avoid expensive rendering. 
+
+![orbit](./assets/orbit.gif)
+
+
+### Add
+
+To add a new object, turn on `tap to add mode` and click anywhere on the plane.
+
+![add](./assets/add.gif)
+
+
+### Move/Modify 
+
+To move an object, select it and drag it across the plane. Once selected, you can modify it using the form. To remove it, click the delete button. 
+
+![orbit](./assets/move.gif)
 
