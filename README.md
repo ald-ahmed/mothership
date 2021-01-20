@@ -54,7 +54,7 @@ To move an object, select it and drag it across the plane. Once selected, you ca
 
 ### Add
 
-To add a new object, turn on `tap to add mode` and click anywhere on the plane.
+To add a new object, turn on `tap to add mode` and click anywhere on the plane. This will create a white object with a random name.
 
 ![add](./assets/add.gif)
 
